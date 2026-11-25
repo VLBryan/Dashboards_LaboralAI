@@ -1,44 +1,64 @@
-@st.cache_data(ttl=3600)
-def cargar_eventos():
+"""Extracción desde MongoDB y caché en memoria para Eventos.
 
-    return load_df_cache(
-        "cache/eventos.pkl"
-    )
+Guía para el equipo de Data (Eventos):
+- Este archivo es el ÚNICO lugar del módulo que consulta MongoDB.
+- Los datos se cachean EXCLUSIVAMENTE en memoria RAM con `@st.cache_data`
+  (no se guardan archivos en disco por seguridad de datos sensibles).
+- Ajusta los nombres de colecciones y proyecciones en `build_eventos()`
+  según tu base MongoDB real.
+"""
 
+from __future__ import annotations
 
-def actualizar_cache_eventos():
+from typing import Optional
 
-    df = build_all(...)
+import pandas as pd
+import streamlit as st
 
-    df.to_pickle(
-        "cache/eventos.pkl"
-    )
+from cache import invalidar_cache_modulo, registrar_actualizacion_memoria
+from config import CACHE_TTL_SECONDS, DB_NAME
+from mongodb import get_collection_df, get_mongo_client, safe_merge
 
-    cargar_eventos.clear()
-
-
-# -------------------------
-# Construimos build_all
-# -------------------------
-def build_eventos(db_name: str, mongo_uri: Optional[str] = None, cache_dir: str = "./cache") -> Dict[str, pd.DataFrame]:
-    client = get_mongo_client(mongo_uri)
-    db = client[db_name]
-
-    # -------------------------
-    # df de Métricas generales
-    # -------------------------
-    Usuarios = pd.DataFrame(list(db.users.find({"isActive": True,"invitationCode": {"$exists": True,"$nin": [None, ""]}}, {"user": 1, "firstName": 1, "lastName": 1, "disponibilidad": 1, "modalidad": 1, "location": 1, "rubros": 1})))
-    Cvs = pd.DataFrame(list(db.cvs.find({}, {"user": 1, "profession": 1})))
-    #Idioma = pd.DataFrame(list(db.languages.find({}, {"user": 1, "language": 1, "level": 1})))
+MODULO_KEY = "eventos"
 
 
-    Usuarios_Master = Usuarios.merge(Cvs, left_on="_id", right_on="user", how="left")
+def build_eventos(
+    db_name: str = DB_NAME,
+    mongo_uri: Optional[str] = None,
+) -> pd.DataFrame:
+    """Consulta MongoDB y construye el DataFrame maestro de Eventos en memoria."""
+    with get_mongo_client(mongo_uri) as client:
+        eventos = get_collection_df(
+            client,
+            db_name=db_name,
+            coll_name="events",
+            projection={
+                "title": 1,
+                "type": 1,
+                "modality": 1,
+                "startDate": 1,
+                "status": 1,
+            },
+        )
+        registros = get_collection_df(
+            client,
+            db_name=db_name,
+            coll_name="eventRegistrations",
+            projection={"_id": 1, "event": 1, "attended": 1},
+        )
+        # Guía: ajusta `coll_name` y añade aquí otras colecciones relacionadas si hace falta.
+
+    return safe_merge(eventos, registros, left_on="_id", right_on="event", how="left")
 
 
-    # -------------------------
-    # Guardar en cache
-    # -------------------------
-    os.makedirs(cache_dir, exist_ok=True)
-    save_df_cache(Usuarios_Master, os.path.join(cache_dir, "Usuarios_Master.csv"))
-    
-    return Usuarios_Master
+@st.cache_data(ttl=CACHE_TTL_SECONDS, show_spinner="Cargando datos de Eventos...")
+def cargar_eventos(db_name: str = DB_NAME) -> pd.DataFrame:
+    """Obtiene Eventos desde MongoDB y los mantiene cacheados solo en memoria."""
+    df = build_eventos(db_name=db_name)
+    registrar_actualizacion_memoria(MODULO_KEY)
+    return df
+
+
+def actualizar_cache_eventos() -> None:
+    """Limpia la caché en memoria de Eventos para forzar relectura desde MongoDB."""
+    invalidar_cache_modulo(cargar_eventos, modulo=MODULO_KEY)

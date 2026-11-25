@@ -4,9 +4,14 @@
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # Entorno
 .env
+
+# Evitar subir accidentalmente archivos de datos locales si alguien exporta algo manualmente
+*.pkl
+*.parquet
 
 # Streamlit
 .streamlit/

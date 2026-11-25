@@ -1,19 +1,35 @@
-from src.postulantes.cargar_datos import (
-    cargar_postulantes,
-    actualizar_cache_postulantes
-)
+"""Página independiente del dashboard de Postulantes.
 
-from src.postulantes.metricas import *
-from src.postulantes.graficos import *
+Guía para el equipo de Data (Postulantes):
+- Este archivo pertenece al sub-equipo de Postulantes para evitar conflictos en Git Flow.
+- La lógica de negocio debe vivir en `src/postulantes/`:
+  - `cargar_datos.py`: consulta a MongoDB con `@st.cache_data` (solo en memoria).
+  - `transformaciones.py`: limpieza y filtros puros.
+  - `metricas.py`: KPIs y tablas agregadas.
+  - `graficos.py`: figuras Plotly.
+"""
 
+from __future__ import annotations
 
 import streamlit as st
 
-from styles import cargar_estilos
+from src.postulantes import actualizar_cache_postulantes, cargar_postulantes
+from ui_helpers import cargar_df_desde_memoria, render_sidebar_cache_memoria
 
+st.title("🧑‍💼 Dashboard Postulantes")
 
-cargar_estilos()
+render_sidebar_cache_memoria(
+    nombre_modulo="Postulantes",
+    actualizar_fn=actualizar_cache_postulantes,
+    key_prefix="postulantes",
+)
 
-df = cargar_postulantes()
-
-st.title("📊 Dashboard Postulantes")
+# ---------------------------------------------------------------------------
+# Guía de inicio rápido para desplegar este dashboard en local:
+# Descomenta estas líneas cuando tengas tu `.env` configurado con MongoDB y
+# conecta tus funciones de `src/postulantes/` (`transformaciones`, `metricas`, `graficos`).
+#
+# df = cargar_df_desde_memoria(cargar_postulantes, "Postulantes")
+# if df is None or df.empty:
+#     st.stop()
+# ---------------------------------------------------------------------------
