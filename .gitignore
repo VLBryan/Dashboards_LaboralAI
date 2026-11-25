@@ -4,9 +4,15 @@
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # Entorno
 .env
+
+# Caché local de DataFrames (evita conflictos en Git Flow)
+cache/
+*.pkl
+*.parquet
 
 # Streamlit
 .streamlit/

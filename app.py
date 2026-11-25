@@ -1,30 +1,34 @@
+"""Punto de entrada principal (`streamlit run app.py`).
+
+Arquitectura pensada para Git Flow en equipo:
+- `app.py` únicamente configura la app, carga estilos globales y redirige a las
+  páginas independientes mediante `st.navigation` + `st.Page`.
+- Cada miembro/sub-equipo trabaja exclusivamente en su archivo dentro de `pages/`
+  y en su carpeta correspondiente dentro de `src/` (`postulantes`, `empresas`, `eventos`),
+  evitando conflictos de merge en Git Flow.
+"""
+
 import streamlit as st
 
-from src.postulantes import actualizar_cache_postulantes
-from src.empresas import actualizar_cache_empresas
-from src.eventos import actualizar_cache_eventos
+from styles import cargar_estilos
 
 st.set_page_config(
-    page_title="Laboral.AI Admin",
-    layout="wide"
+    page_title="Laboral.AI | Dashboards",
+    page_icon="📊",
+    layout="wide",
 )
 
-st.title("⚙️ Administración de Datos")
+cargar_estilos()
 
+# Registro central de páginas independientes (cada archivo vive aislado en `pages/`).
+# Si agregas un nuevo dominio, solo crea `src/<nuevo>/`, `pages/4_<Nuevo>.py`
+# y añade aquí una entrada `st.Page(...)`.
+paginas = [
+    st.Page("pages/0_Inicio.py", title="Inicio & Caché", icon="🏠", default=True),
+    st.Page("pages/1_Postulantes.py", title="Postulantes", icon="🧑‍💼"),
+    st.Page("pages/2_Empresas.py", title="Empresas", icon="🏢"),
+    st.Page("pages/3_Eventos.py", title="Eventos", icon="🎟️"),
+]
 
-col1, col2, col3 = st.columns(3)
-
-with col1:
-
-    if st.button("🔄 Actualizar Postulantes"):
-        actualizar_cache_postulantes()
-
-with col2:
-
-    if st.button("🔄 Actualizar Empresas"):
-        actualizar_cache_empresas()
-
-with col3:
-
-    if st.button("🔄 Actualizar Eventos"):
-        actualizar_cache_eventos()
+navegacion = st.navigation(paginas)
+navegacion.run()
