@@ -9,8 +9,7 @@ __pycache__/
 # Entorno
 .env
 
-# Caché local de DataFrames (evita conflictos en Git Flow)
-cache/
+# Evitar subir accidentalmente archivos de datos locales si alguien exporta algo manualmente
 *.pkl
 *.parquet
 
